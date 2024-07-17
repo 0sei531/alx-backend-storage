@@ -5,11 +5,13 @@ Advanced - Module for Implementing an expiring web cache and tracker
 
 import redis
 import requests
-from typing import Callable, Union
+from typing import Callable
 from functools import wraps
+
 
 # Initialize Redis client
 redis_client = redis.Redis()
+
 
 def count_requests(method: Callable) -> Callable:
     """
@@ -38,6 +40,7 @@ def count_requests(method: Callable) -> Callable:
 
     return wrapper
 
+
 @count_requests
 def get_page(url: str) -> str:
     """
@@ -45,6 +48,7 @@ def get_page(url: str) -> str:
     """
     response = requests.get(url)
     return response.text
+
 
 class WebCache:
     """
@@ -71,10 +75,12 @@ class WebCache:
         count = int(self._redis.get(f"count:{url}") or 0)
         return {"url": url, "count": count}
 
+
 # Example usage
 if __name__ == "__main__":
     # Using the standalone get_page function
-    url = "http://slowwly.robertomurray.co.uk/delay/1000/url/http://www.example.com"
+    url = ("http://slowwly.robertomurray.co.uk/delay/1000/url/"
+           "http://www.example.com")
     print(get_page(url))
     print(get_page(url))  # This should be faster due to caching
 
