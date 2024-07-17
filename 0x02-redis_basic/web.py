@@ -1,54 +1,85 @@
 #!/usr/bin/env python3
 """
-Implements an expiring web cache and tracker
+Advanced - Module for Implementing an expiring web cache and tracker
 """
 
 import redis
 import requests
+from typing import Callable, Union
 from functools import wraps
-from typing import Callable
 
-
+# Initialize Redis client
 redis_client = redis.Redis()
 
-
-def cache_with_expiration(expiration_time: int = 10) -> Callable:
+def count_requests(method: Callable) -> Callable:
     """
-    Decorator to cache the result of a function with expiration time
+    Decorator for counting requests and caching results
     """
-    def decorator(func: Callable) -> Callable:
-        @wraps(func)
-        def wrapper(url: str) -> str:
-            # Increment the access count for the URL
-            redis_client.incr(f"count:{url}")
+    @wraps(method)
+    def wrapper(url: str) -> str:
+        """
+        Wrapper function that implements caching and request counting
+        """
+        # Increment request count for the URL
+        redis_client.incr(f"count:{url}")
 
-            # Check if the page is cached
-            cached_page = redis_client.get(f"cached:{url}")
-            if cached_page:
-                return cached_page.decode('utf-8')
+        # Check if the result is cached
+        cached_html = redis_client.get(f"cached:{url}")
+        if cached_html:
+            return cached_html.decode('utf-8')
 
-            # If not cached, call the original function
-            result = func(url)
+        # If not cached, call the original method
+        html = method(url)
 
-            # Cache the result with expiration time
-            redis_client.setex(f"cached:{url}", expiration_time, result)
+        # Cache the result with 10-second expiration
+        redis_client.setex(f"cached:{url}", 10, html)
 
-            return result
-        return wrapper
-    return decorator
+        return html
 
+    return wrapper
 
-@cache_with_expiration()
+@count_requests
 def get_page(url: str) -> str:
     """
-    Obtain the HTML content of a particular URL
+    Obtain the HTML content of a URL
     """
     response = requests.get(url)
     return response.text
 
+class WebCache:
+    """
+    WebCache class for advanced caching operations
+    """
+    def __init__(self):
+        """
+        Initialize WebCache
+        """
+        self._redis = redis.Redis()
+        self._redis.flushdb()
 
+    @count_requests
+    def get_page(self, url: str) -> str:
+        """
+        Get page content with caching and request tracking
+        """
+        return requests.get(url).text
+
+    def get_stats(self, url: str) -> dict:
+        """
+        Get statistics for a specific URL
+        """
+        count = int(self._redis.get(f"count:{url}") or 0)
+        return {"url": url, "count": count}
+
+# Example usage
 if __name__ == "__main__":
-    url = "http://slowwly.robertomurray.co.uk"
-    page_content = get_page(url)
-    print(page_content)
-    print(f"Number of accesses: {redis_client.get(f'count:{url}').decode('utf-8')}")
+    # Using the standalone get_page function
+    url = "http://slowwly.robertomurray.co.uk/delay/1000/url/http://www.example.com"
+    print(get_page(url))
+    print(get_page(url))  # This should be faster due to caching
+
+    # Using the WebCache class
+    cache = WebCache()
+    print(cache.get_page(url))
+    print(cache.get_page(url))  # This should be faster due to caching
+    print(cache.get_stats(url))  # Should show the request count
