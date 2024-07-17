@@ -21,7 +21,8 @@ def count_calls(method: Callable) -> Callable:
 
 
 def call_history(method: Callable) -> Callable:
-    """Decorator to store the history of inputs and outputs for a particular function."""
+    """Decorator to store the history of inputs and outputs
+    for a particular function."""
 
     @wraps(method)
     def wrapper(self, *args, **kwargs):
