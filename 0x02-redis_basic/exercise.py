@@ -69,14 +69,15 @@ class Cache:
         return random_key
 
     def get(self, key: str,
-            fn: Optional[Callable] = None) -> Union[str, bytes, int, float, None]:
+        fn: Optional[Callable] = None
+        ) -> Union[str, bytes, int, float, None]:
         """Reading from Redis and recovering original type."""
-        value = self._redis.get(key)
-        if value is None:
-            return None
-        if fn:
-            return fn(value)
-        return value
+       value = self._redis.get(key)
+       if value is None:
+         return None
+       if fn:
+          return fn(value)
+       return value
 
     def get_str(self, key: str) -> Optional[str]:
         """Parameterizes a value from Redis to str."""
