@@ -1,38 +1,54 @@
 #!/usr/bin/env python3
-""" Advanced - Module for Implementing an expiring web cache and tracker """
+"""
+Implements an expiring web cache and tracker
+"""
+
 import redis
 import requests
-from typing import Callable
 from functools import wraps
+from typing import Callable
 
 
-def count_requests(method: Callable) -> Callable:
-    """ Counting with decorators how many times a request has been made """
-    @wraps(method)
-    def wrapper(url: str) -> str:
-        """ Wrapper for decorator functionality """
-        redis_client = redis.Redis()
-        redis_client.incr(f"count:{url}")
-        cached_html = redis_client.get(f"cached:{url}")
-        if cached_html:
-            return cached_html.decode('utf-8')
-        html = method(url)
-        redis_client.setex(f"cached:{url}", 10, html)
-        return html
-    return wrapper
+redis_client = redis.Redis()
 
 
-@count_requests
+def cache_with_expiration(expiration_time: int = 10) -> Callable:
+    """
+    Decorator to cache the result of a function with expiration time
+    """
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        def wrapper(url: str) -> str:
+            # Increment the access count for the URL
+            redis_client.incr(f"count:{url}")
+
+            # Check if the page is cached
+            cached_page = redis_client.get(f"cached:{url}")
+            if cached_page:
+                return cached_page.decode('utf-8')
+
+            # If not cached, call the original function
+            result = func(url)
+
+            # Cache the result with expiration time
+            redis_client.setex(f"cached:{url}", expiration_time, result)
+
+            return result
+        return wrapper
+    return decorator
+
+
+@cache_with_expiration()
 def get_page(url: str) -> str:
-    """ Obtain the HTML content of a particular URL and returns it. """
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-        return response.text
-    except requests.RequestException as e:
-        return f"Error fetching {url}: {str(e)}"
+    """
+    Obtain the HTML content of a particular URL
+    """
+    response = requests.get(url)
+    return response.text
 
 
 if __name__ == "__main__":
     url = "http://slowwly.robertomurray.co.uk"
-    print(get_page(url))
+    page_content = get_page(url)
+    print(page_content)
+    print(f"Number of accesses: {redis_client.get(f'count:{url}').decode('utf-8')}")
