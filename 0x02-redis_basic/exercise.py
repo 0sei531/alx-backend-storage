@@ -70,11 +70,16 @@ class Cache:
 
     @call_history
     @count_calls
-    def store(self, data: Union[str, bytes, int, float]) -> str:
-        """Store data in Redis with a random key and return the key."""
-        random_key = str(uuid4())
-        self._redis.set(random_key, data)
-        return random_key
+    def get(self, key: str, fn: Optional[Callable] = None) -> Union[
+        str, bytes, int, float, None]:
+    """Retrieve value from Redis and optionally apply
+    a conversion function."""
+    value = self._redis.get(key)
+    if value is None:
+        return None
+    if fn:
+        return fn(value)
+    return value
 
     def get(self, key: str, fn: Optional[Callable] = None) -> Union[
         str, bytes, int, float, None]:
