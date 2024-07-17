@@ -58,10 +58,10 @@ def replay(fn: Callable) -> None:
         output_str = output_data.decode('utf-8')
         print(f'{f_name}(*{input_str}) -> {output_str}')
 
+
 class Cache:
     """Class for implementing a Cache."""
 
-    
     def __init__(self):
         """Constructor Method."""
         self._redis = redis.Redis()
