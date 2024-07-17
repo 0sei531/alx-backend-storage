@@ -42,12 +42,12 @@ def replay(fn: Callable) -> None:
     r = redis.Redis()
     f_name = fn.__qualname__
     n_calls = r.get(f_name)
-    
+
     if n_calls is not None:
         n_calls = n_calls.decode('utf-8')
     else:
         n_calls = 0
-    
+
     print(f'{f_name} was called {n_calls} times:')
 
     inputs = r.lrange(f_name + ":inputs", 0, -1)
